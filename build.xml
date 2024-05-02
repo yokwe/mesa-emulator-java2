@@ -23,5 +23,14 @@
 			<sysproperty key="logback.configurationFile" value="${logback.conf}" />
 		</java>
 	</target>
-
+	
+	<target name="study001">
+		<java module="yokwe.mesa.emulator/yokwe.study.Study001" fork="true">
+			<modulepath refid="build.classpath" />
+			<modulepath refid="target.jar" />
+			<sysproperty key="logback.configurationFile" value="${logback.conf}" />
+			<jvmarg value="--enable-preview" />
+		</java>
+	</target>
+	
 </project>

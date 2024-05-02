@@ -44,6 +44,7 @@
 				<!--  require version 3.7 or higher for java module -->
 				<version>3.8.1</version>
 				<configuration>
+					<compilerArgs>--enable-preview</compilerArgs>
 					<excludes>
 						<exclude>**/test/*.java</exclude>
 					</excludes>
