@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- ====================================================================== -->
+<!-- Ant build file (http://ant.apache.org/) for Ant 1.6.2 or above.        -->
+<!-- ====================================================================== -->
+
+
+
+<project name="mesa-emulator-java2" default="package" basedir=".">
+	<import file="maven-build.xml" />
+
+	<property name="logback.conf" value="data/logback.xml" />
+
+	<path id="target.jar">
+		<pathelement location="${maven.build.dir}/${maven.build.finalName}.jar" />
+	</path>
+
+	<!-- APPLICATION -->
+	<target name="main">
+		<java module="yokwe.mesa.emulator/yokwe.mesa.emulator.Main" fork="true">
+			<modulepath refid="build.classpath" />
+			<modulepath refid="target.jar" />
+			<sysproperty key="logback.configurationFile" value="${logback.conf}" />
+		</java>
+	</target>
+
+</project>
