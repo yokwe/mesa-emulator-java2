@@ -30,12 +30,17 @@ public class Base {
 	@BeforeEach
 	protected void beforeEach() {
 		logger.info("beforeEach");
-		memory.init();
+		memoryInit();
 	}
 	
 	@AfterEach
 	protected void afterEach() {
 		logger.info("afterEach");
 		System.gc();
+	}
+	
+	
+	private static void memoryInit() {
+		memory.init();
 	}
 }

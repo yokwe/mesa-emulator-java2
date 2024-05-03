@@ -96,7 +96,7 @@ public class Memory {
 	}
 	
 	public int fetch(int va) {
-		var flag = map[va >>> PAGE_BITS];
+		var flag = map[toPageNumber(va)];
 		
 		if (flag.testVacant()) Process.pageFault(va);
 		
@@ -106,7 +106,7 @@ public class Memory {
 		return (flag.realPage() << PAGE_BITS) | (va & PAGE_MASK);
 	}
 	public int store(int va) {
-		var flag = map[va >>> PAGE_BITS];
+		var flag = map[toPageNumber(va)];
 		
 		if (flag.testVacant()) Process.pageFault(va);
 		if (flag.testProtect()) Process.writeProtectFault(va);
@@ -114,6 +114,12 @@ public class Memory {
 		// maintain flag
 		flag.setReferenced();
 		flag.setDirty();
+		
+		return (flag.realPage() << PAGE_BITS) | (va & PAGE_MASK);
+	}
+	public int peek(int va) {
+		var flag = map[toPageNumber(va)];
+		if (flag.testVacant()) error();
 		
 		return (flag.realPage() << PAGE_BITS) | (va & PAGE_MASK);
 	}
@@ -130,9 +136,6 @@ public class Memory {
 	public void rawWrite32(int ra0, int ra1, int newValue) {
 		realMemory[ra0] = (short)(newValue >> SHORT_BITS);
 		realMemory[ra1] = (short)(newValue);
-	}
-	public static boolean isSamePage(int va, int vb) {
-		return (va & ~PAGE_MASK) == (vb & ~PAGE_MASK);
 	}
 
 	public int read16(int va) {
