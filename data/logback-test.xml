@@ -13,7 +13,7 @@
       <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %-8logger{0} - %msg%n</pattern>
     </encoder>
     
-    <param name="Append" value="false" />
+    <Append>false</Append>
   </appender>
   
   <!-- ignore HttpUtil warn message -->
