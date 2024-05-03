@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import static yokwe.mesa.emulator.Type.*;
 
-public class Memory {
+public final class Memory {
 	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 	
 	public final int vmBits;
@@ -26,22 +26,19 @@ public class Memory {
 		rmBits       = rmBits_;
 		ioRegionPage = ioRegionPage_;
 		
-		vpSize = 1 << (vmBits - PAGE_BITS);
-		rpSize = Integer.min(1 << (rmBits - PAGE_BITS), MAX_REALMEMORY_PAGE_SIZE);
+		vpSize = toPageNumber(1 << vmBits);
+		rpSize = Integer.min(toPageNumber(1 << rmBits), MAX_REALMEMORY_PAGE_SIZE);
 		
-		vaSize = vpSize << PAGE_BITS;
-		raSize = rpSize << PAGE_BITS;
+		vaSize = toPageAddress(vpSize);
+		raSize = toPageAddress(rpSize);
 		
 		map        = new Map[vpSize];
 		for(int i = 0; i < map.length; i++) {
 			map[i] = new Map();
 		}
-		realMemory = new short[rpSize << PAGE_BITS];
+		realMemory = new short[raSize];
 		
 		init();
-	}
-	public Memory() {
-		this(DEFAULT_VM_BITS, DEFAULT_RM_BITS, DEFAULT_IO_REGION);
 	}
 	
 	@Override
@@ -121,8 +118,8 @@ public class Memory {
 		return toInt(realMemory[ra0], realMemory[ra1]);
 	}
 	public void rawWrite32(int ra0, int ra1, int newValue) {
-		realMemory[ra0] = (short)(newValue >> SHORT_BITS);
-		realMemory[ra1] = (short)(newValue);
+		realMemory[ra0] = highHalf(newValue);
+		realMemory[ra1] = lowHalf(newValue);
 	}
 
 	
@@ -139,7 +136,7 @@ public class Memory {
 	public int store(int va) {
 		var flag = map[toPageNumber(va)];
 		
-		if (flag.testVacant()) Process.pageFault(va);
+		if (flag.testVacant())  Process.pageFault(va);
 		if (flag.testProtect()) Process.writeProtectFault(va);
 		
 		// maintain flag

@@ -6,7 +6,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
 public class Base {
-//	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
+//	private static final yokwe.util.FormatLogger logger = yokwe.util.FormatLogger.getLogger();
 	
 	private static final int VM_BITS = 24;
 	private static final int RM_BITS = 22;
@@ -17,25 +17,21 @@ public class Base {
 	
 	@BeforeAll
 	protected static void beforeAll() {
-//		logger.info("beforeAll");
 		memory = new Memory(VM_BITS, RM_BITS, IO_REGION_PAGE);
 	}
 	
 	@AfterAll
 	protected static void afterAll() {
-//		logger.info("afterAll");
 		System.gc();
 	}
 	
 	@BeforeEach
 	protected void beforeEach() {
-//		logger.info("beforeEach");
 		memoryInit();
 	}
 	
 	@AfterEach
 	protected void afterEach() {
-//		logger.info("afterEach");
 		System.gc();
 	}
 	

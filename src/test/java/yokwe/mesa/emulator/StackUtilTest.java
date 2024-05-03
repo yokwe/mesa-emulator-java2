@@ -7,12 +7,12 @@ import org.junit.jupiter.api.Test;
 import yokwe.util.StackUtil;
 
 public class StackUtilTest extends Base {
-//	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
+//	private static final yokwe.util.FormatLogger logger = yokwe.util.FormatLogger.getLogger();
 	
 	@Test
 	public void getCallerMethodName() {
-//		logger.info(StackUtil.getCallerMethodName());
-
+//		logger.info("%s", yokwe.util.StackUtil.getCallerMethodName());
+		
 		// prepare
 		// execute
 		var actual = StackUtil.getCallerMethodName();
@@ -24,8 +24,8 @@ public class StackUtilTest extends Base {
 	}
 	@Test
 	public void getCallerClass() {
-//		logger.info(StackUtil.getCallerMethodName());
-
+//		logger.info("%s", yokwe.util.StackUtil.getCallerMethodName());
+		
 		// prepare
 		// execute
 		var actual = StackUtil.getCallerClass();
