@@ -7,7 +7,7 @@ public class Main {
 		logger.info("START");
 		
 		int vmBits   = 24;
-		int rmBits   = 20;
+		int rmBits   = 22;
 		int ioRegion = 0x80;
 		
 		var memory = new Memory(vmBits, rmBits, ioRegion);

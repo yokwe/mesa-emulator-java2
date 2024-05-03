@@ -2,42 +2,37 @@ package yokwe.mesa.emulator;
 
 import java.util.Arrays;
 
+import static yokwe.mesa.emulator.Type.*;
+
 public class Memory {
-	public static final int DEFAULT_VM_BITS   = 24;
-	public static final int DEFAULT_RM_BITS   = 20;
-	public static final int DEFAULT_IO_REGION = 0x80;
+	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 	
-	public static final int PAGE_BITS = 8;
-	public static final int PAGE_SIZE = 1 << PAGE_BITS;
-	public static final int PAGE_MASK = PAGE_SIZE - 1;
-		
 	public final int vmBits;
 	public final int rmBits;
-	public final int ioRegion;
+	public final int ioRegionPage;
 	
-	public final int vmSize;
-	public final int rmSize;
+	public final int vpSize;
+	public final int rpSize;
 	
-	private final MapFlag[] mapFlag;
-	private final short[][] realPage;
+	private final Map[]   map;
+	private final short[] realMemory;
 	
 	
-	public Memory(int vmBits_, int rmBits_, int ioRegion_) {
-		vmBits   = vmBits_;
-		rmBits   = rmBits_;
-		ioRegion = ioRegion_;
+	public Memory(int vmBits_, int rmBits_, int ioRegionPage_) {
+		vmBits       = vmBits_;
+		rmBits       = rmBits_;
+		ioRegionPage = ioRegionPage_;
 		
-		vmSize   = 1 << vmBits;
-		rmSize   = 1 << rmBits;
+		vpSize = 1 << (vmBits - PAGE_BITS);
+		rpSize = Integer.min(1 << (rmBits - PAGE_BITS), MAX_REALMEMORY_PAGE_SIZE);
 		
-		mapFlag  = new MapFlag[vmSize];
-		for(int i = 0; i < vmSize; i++) {
-			mapFlag[i] = new MapFlag();
+		map        = new Map[vpSize];
+		for(int i = 0; i < map.length; i++) {
+			map[i] = new Map();
 		}
-		realPage = new short[rmSize][PAGE_SIZE];
-		for(int i = 0; i < rmSize; i++) {
-			Arrays.fill(realPage[i], (short)0);
-		}
+		realMemory = new short[rpSize << PAGE_BITS];
+		
+		init();
 	}
 	public Memory() {
 		this(DEFAULT_VM_BITS, DEFAULT_RM_BITS, DEFAULT_IO_REGION);
@@ -45,73 +40,123 @@ public class Memory {
 	
 	@Override
 	public String toString() {
-		return String.format("{vmBits %d  rmBits  %d  ioRegion  %d}", vmBits, rmBits, ioRegion);
+		return String.format("{vmBits  %d  vpSize  %X  rmBits %d  rmSize  %X  ioRegionPage  %d}", vmBits, vpSize - 1, rmBits, rpSize - 1, ioRegionPage);
 	}
 	
-	
-	public static final int SHORT_BITS = 16;
-	public static final int SHORT_MASK = (1 << SHORT_BITS) - 1;
-	public static int toInt(short value) {
-		return value & SHORT_MASK;
-	}
-	public static int toInt(short high, short low) {
-		return (high << SHORT_BITS) | (low & SHORT_MASK);
-	}
-	
-	
-	public short[] fetchPage(int va) {
-		var flag = mapFlag[va >>> PAGE_BITS];
+	public void init() {
+		for(int i = 0; i < map.length; i++) {
+			map[i].setVacant();
+			map[i].realPage(0);
+		}
+		Arrays.fill(realMemory, (short)0);
 		
-		if (flag.vacant()) Process.pageFault(va);
+		// initialize mapFlags and realPages
+		//
+		//const int VP_START = pageGerm + countGermVM;
+		int rp = 0;
+		// vp:[ioRegionPage .. 256) <=> rp:[0..256-ioRegionPage)
+		for(int i = ioRegionPage; i < 256; i++) {
+			map[i].flag(0);
+			map[i].realPage(rp++);
+		}
+		// vp:[0..ioRegionPage) <=> rp: [256-ioRegionPage .. 256)
+		for(int i = 0; i < ioRegionPage; i++) {
+			map[i].flag(0);
+			map[i].realPage(rp++);
+		}
+		// vp: [256 .. rpSize)
+		for(int i = 256; i < rpSize; i++) {
+			map[i].flag(0);
+			map[i].realPage(rp++);
+		}
+		if (rp != rpSize) {
+			logger.error("rp != rpSize");
+			error();
+		}
+		// vp: [rpSize .. vpSize)
+		for(int i = rpSize; i < vpSize; i++) {
+			map[i].setVacant();
+			map[i].realPage(0);
+		}
+	}
+	
+	
+	//	ReadMap PROCEDURE [virtual: VirtualPageNumber]
+	//		    RETURNS [flags: MapFlags, real: RealPageNumber];
+	public Map readMap(int vp) {
+		return map[vp];
+	}
+	
+	//	WriteMap: PROCEDURE [
+	//		    virtual: VirtualPageNumber, flags: MapFlags, real: RealPageNumber];
+	public void writeMap(int vp, short mapFlags, int realPageNumber) {
+		var m = map[vp];
+		m.flag(mapFlags);
+		m.realPage(realPageNumber);
+	}
+	
+	public int fetch(int va) {
+		var flag = map[va >>> PAGE_BITS];
+		
+		if (flag.testVacant()) Process.pageFault(va);
 		
 		// maintain flag
 		flag.setReferenced();
 		
-		return realPage[flag.realPage()];
+		return (flag.realPage() << PAGE_BITS) | (va & PAGE_MASK);
 	}
-	public short[] storePage(int va) {
-		var flag = mapFlag[va >>> PAGE_BITS];
+	public int store(int va) {
+		var flag = map[va >>> PAGE_BITS];
 		
-		if (flag.vacant()) Process.pageFault(va);
-		if (flag.protect()) Process.writeProtectFault(va);
+		if (flag.testVacant()) Process.pageFault(va);
+		if (flag.testProtect()) Process.writeProtectFault(va);
 		
 		// maintain flag
 		flag.setReferenced();
 		flag.setDirty();
 		
-		return realPage[flag.realPage()];
+		return (flag.realPage() << PAGE_BITS) | (va & PAGE_MASK);
 	}
 	
-	public int read16(int va) {
-		return toInt(fetchPage(va)[va & PAGE_MASK]);
+	public int rawRead16(int ra) {
+		return toInt(realMemory[ra]);
 	}
-	public void writ16(int va, int value) {
-		storePage(va)[va & PAGE_MASK] = (short)value;
+	public void rawWrite16(int ra, int value) {
+		realMemory[ra] = (short)value;
 	}
-	
-	
+	public int rawRead32(int ra0, int ra1) {
+		return toInt(realMemory[ra0], realMemory[ra1]);
+	}
+	public void rawWrite32(int ra0, int ra1, int newValue) {
+		realMemory[ra0] = (short)(newValue >> SHORT_BITS);
+		realMemory[ra1] = (short)(newValue);
+	}
 	public static boolean isSamePage(int va, int vb) {
 		return (va & ~PAGE_MASK) == (vb & ~PAGE_MASK);
+	}
+
+	public int read16(int va) {
+		return rawRead16(fetch(va));
+	}
+	public void writ16(int va, int value) {
+		rawWrite16(store(va), value);
 	}
 	public int read32(int va) {
 		int va0 = va + 0;
 		int va1 = va + 1;
 		
-		short[] ra0 = fetchPage(va0);
-		short[] ra1 = isSamePage(va0, va1) ? ra0 : fetchPage(va1);
+		int ra0 = fetch(va0);
+		int ra1 = isSamePage(va0, va1) ? (ra0 + 1) : fetch(va1);
 		
-		return toInt(ra0[va0 & PAGE_MASK], ra1[va0 & PAGE_MASK]);
+		return rawRead32(ra0, ra1);
 	}
 	public void write32(int va, int newValue) {
 		int va0 = va + 0;
 		int va1 = va + 1;
 		
-		short[] ra0 = fetchPage(va0);
-		short[] ra1 = isSamePage(va0, va1) ? ra0 : fetchPage(va1);
+		int ra0 = store(va0);
+		int ra1 = isSamePage(va0, va1) ? (ra0 + 1) : store(va1);
 		
-		ra0[va0 & PAGE_MASK] = (short)(newValue >> SHORT_BITS);
-		ra1[va1 & PAGE_MASK] = (short)(newValue);
+		rawWrite32(ra0, ra1, newValue);
 	}
-
-	
 }
