@@ -109,7 +109,7 @@ public class Memory {
 		var flag = map[toPageNumber(va)];
 		if (flag.testVacant()) error();
 		
-		return flag.offset() | (va & PAGE_MASK);
+		return flag.offset() | toPageOffset(va);
 	}
 	public int rawRead16(int ra) {
 		return toInt(realMemory[ra]);
@@ -134,7 +134,7 @@ public class Memory {
 		// maintain flag
 		flag.setReferenced();
 		
-		return flag.offset() | (va & PAGE_MASK);
+		return flag.offset() | toPageOffset(va);
 	}
 	public int store(int va) {
 		var flag = map[toPageNumber(va)];
@@ -146,7 +146,7 @@ public class Memory {
 		flag.setReferenced();
 		flag.setDirty();
 		
-		return flag.offset() | (va & PAGE_MASK);
+		return flag.offset() | toPageOffset(va);
 	}
 	
 	

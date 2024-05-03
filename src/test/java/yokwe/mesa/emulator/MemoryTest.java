@@ -55,7 +55,7 @@ public class MemoryTest extends Base {
 		// check result
 		var map = memory.readMap(vp);
 		assertEquals(mapFlags, map.flag());
-		assertEquals(toPageOffset(rp), map.offset());
+		assertEquals(toPageAddress(rp), map.offset());
 		
 		// check side effect
 	}

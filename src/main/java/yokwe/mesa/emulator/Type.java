@@ -17,17 +17,22 @@ public final class Type {
 	public static final int PAGE_BITS = 8;
 	public static final int PAGE_SIZE = 1 << PAGE_BITS;
 	public static final int PAGE_MASK = PAGE_SIZE - 1;
-	public static int toPageNumber(int va) {
-		return va >>> PAGE_BITS;
+	// virtual page
+	public static int toPageOffset(int vp) {
+		return vp & PAGE_MASK;
 	}
+	public static int toPageAddress(int vp) {
+		return vp << PAGE_BITS;
+	}
+	// virtual address
 	public static int toPageBase(int va) {
 		return va & ~PAGE_MASK;
 	}
+	public static int toPageNumber(int va) {
+		return va >>> PAGE_BITS;
+	}
 	public static boolean isSamePage(int va, int vb) {
 		return toPageBase(va) == toPageBase(vb);
-	}
-	public static int toPageOffset(int vp) {
-		return vp << PAGE_BITS;
 	}
 
 	public static final int MAX_REALMEMORY_PAGE_SIZE = /* RealMemoryImplGuam::largestArraySize */ 4086 * SHORT_BITS;
