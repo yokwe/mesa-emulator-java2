@@ -4,38 +4,36 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import static yokwe.mesa.emulator.Type.*;
-
 public class MemoryTest extends Base {
 //	private static final yokwe.util.FormatLogger logger = yokwe.util.FormatLogger.getLogger();
 
 	@Test
-	public void readMapA() {
-//		logger.info("%s", yokwe.util.StackUtil.getCallerMethodName());
+	public void readMap_A() {
+//		logger.info(yokwe.util.StackUtil.getCallerMethodName());
 		
 		int va = 0x0020_0123;
 		
 		// prepare
 		// execute
-		var map = memory.readMap(toPageNumber(va));
+		var map = memory.readMap(Type.toPageNumber(va));
 		
 		// check result
 		assertEquals((short)0, map.flag());
 		assertEquals(false, map.testVacant());
 		
-		assertEquals(toPageBase(va), map.offset());
+		assertEquals(Type.toPageBase(va), map.offset());
 		
 		// check side effect
 	}
 	@Test
-	public void readMapB() {
-//		logger.info("%s", yokwe.util.StackUtil.getCallerMethodName());
+	public void readMap_B() {
+//		logger.info(yokwe.util.StackUtil.getCallerMethodName());
 		
 		int va = (memory.raSize) + 100;
 		
 		// prepare
 		// execute
-		var map = memory.readMap(toPageNumber(va));
+		var map = memory.readMap(Type.toPageNumber(va));
 		
 		// check result
 		assertEquals(true, map.testVacant());
@@ -45,7 +43,7 @@ public class MemoryTest extends Base {
 	}
 	@Test
 	public void writeMap() {
-//		logger.info("%s", yokwe.util.StackUtil.getCallerMethodName());
+//		logger.info(yokwe.util.StackUtil.getCallerMethodName());
 		
 		int   vp       = 1000;
 		short mapFlags = 0xFF;
@@ -57,13 +55,13 @@ public class MemoryTest extends Base {
 		// check result
 		var map = memory.readMap(vp);
 		assertEquals(mapFlags, map.flag());
-		assertEquals(toPageAddress(rp), map.offset());
+		assertEquals(Type.toPageAddress(rp), map.offset());
 		
 		// check side effect
 	}
 	@Test
 	public void fetch() {
-//		logger.info("%s", yokwe.util.StackUtil.getCallerMethodName());
+//		logger.info(yokwe.util.StackUtil.getCallerMethodName());
 		
 		int va = 0x0020_0123;
 		
@@ -75,14 +73,14 @@ public class MemoryTest extends Base {
 		assertEquals(va, ra);
 		
 		// check side effect
-		Map map = memory.readMap(toPageNumber(va));
+		Map map = memory.readMap(Type.toPageNumber(va));
 		assertEquals(false, map.testDirty());
 		assertEquals(true,  map.testReferenced());
 		assertEquals(false, map.testProtect());
 	}
 	@Test
 	public void store() {
-//		logger.info("%s", yokwe.util.StackUtil.getCallerMethodName());
+//		logger.info(yokwe.util.StackUtil.getCallerMethodName());
 		
 		int va = 0x0020_0123;
 		
@@ -94,14 +92,14 @@ public class MemoryTest extends Base {
 		assertEquals(va, ra);
 		
 		// check side effect
-		Map map = memory.readMap(toPageNumber(va));
+		Map map = memory.readMap(Type.toPageNumber(va));
 		assertEquals(true,  map.testDirty());
 		assertEquals(true,  map.testReferenced());
 		assertEquals(false, map.testProtect());
 	}
 	@Test
 	public void peek() {
-//		logger.info("%s", yokwe.util.StackUtil.getCallerMethodName());
+//		logger.info(yokwe.util.StackUtil.getCallerMethodName());
 		
 		int va = 0x0020_0123;
 		
@@ -113,14 +111,14 @@ public class MemoryTest extends Base {
 		assertEquals(va, ra);
 		
 		// check side effect
-		Map map = memory.readMap(toPageNumber(va));
+		Map map = memory.readMap(Type.toPageNumber(va));
 		assertEquals(false, map.testDirty());
 		assertEquals(false, map.testReferenced());
 		assertEquals(false, map.testProtect());
 	}
 	@Test
 	public void rawRead16() {
-//		logger.info("%s", yokwe.util.StackUtil.getCallerMethodName());
+//		logger.info(yokwe.util.StackUtil.getCallerMethodName());
 		
 		int va       = 0x0020_0123;
 		int expected = 0xCAFE;
@@ -136,14 +134,14 @@ public class MemoryTest extends Base {
 		assertEquals(expected, actual);
 		
 		// check side effect
-		Map map = memory.readMap(toPageNumber(va));
+		Map map = memory.readMap(Type.toPageNumber(va));
 		assertEquals(false, map.testDirty());
 		assertEquals(false, map.testReferenced());
 		assertEquals(false, map.testProtect());
 	}
 	@Test
 	public void rawWrite16() {
-//		logger.info("%s", yokwe.util.StackUtil.getCallerMethodName());
+//		logger.info(yokwe.util.StackUtil.getCallerMethodName());
 		
 		int va       = 0x0020_CAFE;
 		int expected = 0xCAFE;
@@ -159,7 +157,7 @@ public class MemoryTest extends Base {
 		assertEquals(expected, actual);
 		
 		// check side effect
-		Map map = memory.readMap(toPageNumber(va));
+		Map map = memory.readMap(Type.toPageNumber(va));
 		assertEquals(false, map.testDirty());
 		assertEquals(false, map.testReferenced());
 		assertEquals(false, map.testProtect());
