@@ -12,17 +12,21 @@ public final class Map {
 	
 	// NOTE provide MapFlags compatible layout for flag() and flag(int)
 	
-	private static final int MASK_REAL_PAGE   = 0x0000_FFFF; // real page number
-	private static final int MASK_FLAG        = 0xFFFF_0000;
+	// real page  00FF FF00
+	// flag       0000 00FF
+	private static final int REALPAGE_BITS   = 16;
+	private static final int REALPAGE_OFFSET =  8;
+	private static final int FLAG_BITS       =  8;
+	private static final int FLAG_OFFSET     =  0;
 	
-	private static final int OFFSET_REAL_PAGE =  0;
-	private static final int OFFSET_FLAG      = 16;
+	private static final int REALPAGE_MASK  = ((1 << REALPAGE_BITS) - 1) << REALPAGE_OFFSET;
+	private static final int FLAG_MASK      = ((1 << FLAG_BITS) - 1) << FLAG_OFFSET;
+		
+	private static final int BIT_PROTECT    = 0x04;
+	private static final int BIT_DIRTY      = 0x02;
+	private static final int BIT_REFERENCED = 0x01;
 	
-	private static final int MASK_PROTECT     = 0x0004_0000;
-	private static final int MASK_DIRTY       = 0x0002_0000;
-	private static final int MASK_REFERENCED  = 0x0001_0000;
-	
-	private static final int FLAG_VACANT = MASK_DIRTY | MASK_PROTECT; // not referenced and dirty and protect
+	private static final int BIT_VACANT = BIT_DIRTY | BIT_PROTECT; // not referenced and dirty and protect
 	
 	private int rawValue;
 	
@@ -30,63 +34,61 @@ public final class Map {
 		rawValue  = 0;
 	}
 	public Map(short mapFlags, int realPage) {
-		rawValue  = ((mapFlags << OFFSET_FLAG) & MASK_FLAG) | ((realPage << OFFSET_REAL_PAGE) & MASK_REAL_PAGE);
+		set(mapFlags, realPage);
 	}
-	
-	// read operation
-	public int realPage() {
-		return (rawValue & MASK_REAL_PAGE) >> OFFSET_REAL_PAGE;
+	public void set(short mapFlags, int realPage) {
+		rawValue  = ((realPage << REALPAGE_OFFSET) & REALPAGE_MASK) | ((mapFlags << FLAG_OFFSET) & FLAG_MASK);
 	}
-	// flag() returns MapFlags compatible value
-	public short flag() {
-		return (short)((rawValue & MASK_FLAG) >> OFFSET_FLAG);
-	}
-	
 	// write operation
-	public void realPage(int value) {
-		rawValue = (rawValue & MASK_FLAG) | ((value << OFFSET_REAL_PAGE) & MASK_REAL_PAGE);
+	public void realPage(int realPage) {
+		rawValue = (rawValue & FLAG_MASK) | ((realPage << REALPAGE_OFFSET) & REALPAGE_MASK);
 	}
 	// flag(int value) accept MapFlags compatible value
 	public void flag(int value) {
-		rawValue = ((value << OFFSET_FLAG) & MASK_FLAG) | (rawValue & MASK_REAL_PAGE);
+		rawValue = (rawValue & REALPAGE_MASK) | ((value << FLAG_OFFSET) & FLAG_MASK);
+	}
+
+	// read operation
+	public int offset() {
+		return rawValue & REALPAGE_MASK;
+	}
+	// flag() returns MapFlags compatible value
+	public short flag() {
+		return (short)(rawValue & FLAG_MASK);
 	}
 	
 	// vacant
 	public boolean testVacant() {
-		return (rawValue & MASK_FLAG) == FLAG_VACANT;
+		return (rawValue & FLAG_MASK) == BIT_VACANT;
 	}
 	public void setVacant() {
-		rawValue = FLAG_VACANT;
+		rawValue = BIT_VACANT;
 	}
 	
-	// testXXX
-	private boolean testFlag(int mask) {
-		return (rawValue & mask) != 0;
-	}
 	public boolean testProtect() {
-		return testFlag(MASK_PROTECT);
+		return (rawValue & BIT_PROTECT) != 0;
 	}
 	public boolean testDirty() {
-		return testFlag(MASK_DIRTY);
+		return (rawValue & BIT_DIRTY) != 0;
 	}
 	public boolean testReferenced() {
-		return testFlag(MASK_REFERENCED);
+		return (rawValue & BIT_REFERENCED) != 0;
 	}
 	
-	// setXXX
-	private void setFlag(int mask) {
-		if ((rawValue & mask) == 0) {
-			rawValue = (rawValue & ~mask) | mask;
+	public void setProtect() {
+		if ((rawValue & BIT_PROTECT) == 0) {
+			rawValue = (rawValue & ~BIT_PROTECT) | BIT_PROTECT;
 		}
 	}
-	public void setProtect() {
-		setFlag(MASK_PROTECT);
-	}
 	public void setDirty() {
-		setFlag(MASK_DIRTY);
+		if ((rawValue & BIT_DIRTY) == 0) {
+			rawValue = (rawValue & ~BIT_DIRTY) | BIT_DIRTY;
+		}
 	}
 	public void setReferenced() {
-		setFlag(MASK_REFERENCED);
+		if ((rawValue & BIT_REFERENCED) == 0) {
+			rawValue = (rawValue & ~BIT_REFERENCED) | BIT_REFERENCED;
+		}
 	}
 	
 	@Override
@@ -100,6 +102,6 @@ public final class Map {
 			if (testReferenced()) flags.add("REFERENCED");
 		}
 		
-		return String.format("{%X {%s}}", realPage(), String.join(" ", flags));
+		return String.format("{%d {%s}}", offset(), String.join(" ", flags));
 	}
 }

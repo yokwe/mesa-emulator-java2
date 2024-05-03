@@ -20,10 +20,15 @@ public final class Type {
 	public static int toPageNumber(int va) {
 		return va >>> PAGE_BITS;
 	}
-	public static boolean isSamePage(int va, int vb) {
-		return (va & ~PAGE_MASK) == (vb & ~PAGE_MASK);
+	public static int toPageBase(int va) {
+		return va & ~PAGE_MASK;
 	}
-
+	public static boolean isSamePage(int va, int vb) {
+		return toPageBase(va) == toPageBase(vb);
+	}
+	public static int toPageOffset(int vp) {
+		return vp << PAGE_BITS;
+	}
 
 	public static final int MAX_REALMEMORY_PAGE_SIZE = /* RealMemoryImplGuam::largestArraySize */ 4086 * SHORT_BITS;
 	public static final int MAX_REALMEMORY_SIZE = MAX_REALMEMORY_PAGE_SIZE << PAGE_BITS;

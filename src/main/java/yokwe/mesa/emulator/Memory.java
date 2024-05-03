@@ -14,6 +14,9 @@ public class Memory {
 	public final int vpSize;
 	public final int rpSize;
 	
+	public final int vaSize;
+	public final int raSize;
+	
 	private final Map[]   map;
 	private final short[] realMemory;
 	
@@ -25,6 +28,9 @@ public class Memory {
 		
 		vpSize = 1 << (vmBits - PAGE_BITS);
 		rpSize = Integer.min(1 << (rmBits - PAGE_BITS), MAX_REALMEMORY_PAGE_SIZE);
+		
+		vaSize = vpSize << PAGE_BITS;
+		raSize = rpSize << PAGE_BITS;
 		
 		map        = new Map[vpSize];
 		for(int i = 0; i < map.length; i++) {
@@ -95,35 +101,16 @@ public class Memory {
 		m.realPage(realPageNumber);
 	}
 	
-	public int fetch(int va) {
-		var flag = map[toPageNumber(va)];
-		
-		if (flag.testVacant()) Process.pageFault(va);
-		
-		// maintain flag
-		flag.setReferenced();
-		
-		return (flag.realPage() << PAGE_BITS) | (va & PAGE_MASK);
-	}
-	public int store(int va) {
-		var flag = map[toPageNumber(va)];
-		
-		if (flag.testVacant()) Process.pageFault(va);
-		if (flag.testProtect()) Process.writeProtectFault(va);
-		
-		// maintain flag
-		flag.setReferenced();
-		flag.setDirty();
-		
-		return (flag.realPage() << PAGE_BITS) | (va & PAGE_MASK);
-	}
+	
+	//
+	// Low Level Access
+	//
 	public int peek(int va) {
 		var flag = map[toPageNumber(va)];
 		if (flag.testVacant()) error();
 		
-		return (flag.realPage() << PAGE_BITS) | (va & PAGE_MASK);
+		return flag.offset() | (va & PAGE_MASK);
 	}
-	
 	public int rawRead16(int ra) {
 		return toInt(realMemory[ra]);
 	}
@@ -138,6 +125,31 @@ public class Memory {
 		realMemory[ra1] = (short)(newValue);
 	}
 
+	
+	public int fetch(int va) {
+		var flag = map[toPageNumber(va)];
+		
+		if (flag.testVacant()) Process.pageFault(va);
+		
+		// maintain flag
+		flag.setReferenced();
+		
+		return flag.offset() | (va & PAGE_MASK);
+	}
+	public int store(int va) {
+		var flag = map[toPageNumber(va)];
+		
+		if (flag.testVacant()) Process.pageFault(va);
+		if (flag.testProtect()) Process.writeProtectFault(va);
+		
+		// maintain flag
+		flag.setReferenced();
+		flag.setDirty();
+		
+		return flag.offset() | (va & PAGE_MASK);
+	}
+	
+	
 	public int read16(int va) {
 		return rawRead16(fetch(va));
 	}
