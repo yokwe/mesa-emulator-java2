@@ -35,14 +35,14 @@ public final class Type {
 	private static final int PAGE_BITS = 8;
 	private static final int PAGE_SIZE = 1 << PAGE_BITS;
 	private static final int PAGE_MASK = PAGE_SIZE - 1;
-	// virtual page
-	public static int toPageOffset(int vp) {
-		return vp & PAGE_MASK;
-	}
+	// argument is page number
 	public static int toPageAddress(int vp) {
 		return vp << PAGE_BITS;
 	}
-	// virtual address
+	// argument is address
+	public static int toPageOffset(int va) {
+		return va & PAGE_MASK;
+	}
 	public static int toPageBase(int va) {
 		return va & ~PAGE_MASK;
 	}
