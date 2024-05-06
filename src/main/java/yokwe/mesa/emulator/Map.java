@@ -16,28 +16,27 @@ public final class Map {
 	// flag       0000 00FF
 	private static final int REALPAGE_BITS   = 16;
 	private static final int REALPAGE_OFFSET =  8;
-	private static final int FLAG_BITS       =  8;
-	private static final int FLAG_OFFSET     =  0;
+	private static final int REALPAGE_MASK   = ((1 << REALPAGE_BITS) - 1) << REALPAGE_OFFSET;
 	
-	private static final int REALPAGE_MASK  = ((1 << REALPAGE_BITS) - 1) << REALPAGE_OFFSET;
-	private static final int FLAG_MASK      = ((1 << FLAG_BITS) - 1) << FLAG_OFFSET;
-		
-	private static final int BIT_PROTECT    = 0x04;
-	private static final int BIT_DIRTY      = 0x02;
-	private static final int BIT_REFERENCED = 0x01;
-	
-	private static final int BIT_VACANT = BIT_DIRTY | BIT_PROTECT; // not referenced and dirty and protect
+	private static final int FLAG_PROTECT    = 0x04;
+	private static final int FLAG_DIRTY      = 0x02;
+	private static final int FLAG_REFERENCED = 0x01;
+	private static final int FLAG_MASK       = FLAG_PROTECT | FLAG_DIRTY | FLAG_REFERENCED;
+	// composite flag
+	private static final int FLAG_VACANT           = FLAG_PROTECT | FLAG_DIRTY;
+	private static final int FLAG_REFERENCED_DIRTY = FLAG_DIRTY | FLAG_REFERENCED;
 	
 	private int rawValue;
 	
 	public Map() {
-		rawValue  = 0;
+		rawValue = 0;
 	}
 	public Map(short mapFlags, int realPage) {
 		set(mapFlags, realPage);
 	}
 	public void set(short mapFlags, int realPage) {
-		rawValue  = ((realPage << REALPAGE_OFFSET) & REALPAGE_MASK) | ((mapFlags << FLAG_OFFSET) & FLAG_MASK);
+		flag(mapFlags);
+		realPage(realPage);
 	}
 	// write operation
 	public void realPage(int realPage) {
@@ -45,7 +44,7 @@ public final class Map {
 	}
 	// flag(int value) accept MapFlags compatible value
 	public void flag(int value) {
-		rawValue = (rawValue & REALPAGE_MASK) | ((value << FLAG_OFFSET) & FLAG_MASK);
+		rawValue = (rawValue & REALPAGE_MASK) | (value & FLAG_MASK);
 	}
 
 	// read operation
@@ -58,36 +57,47 @@ public final class Map {
 	}
 	
 	// vacant
-	public boolean testVacant() {
-		return (rawValue & FLAG_MASK) == BIT_VACANT;
-	}
 	public void setVacant() {
-		rawValue = BIT_VACANT;
+		rawValue = FLAG_VACANT;
 	}
-	
+	public boolean testVacant() {
+		return (rawValue & FLAG_MASK) == FLAG_VACANT;
+	}
+
+	// simple flag
 	public boolean testProtect() {
-		return (rawValue & BIT_PROTECT) != 0;
+		return (rawValue & FLAG_PROTECT) != 0;
 	}
 	public boolean testDirty() {
-		return (rawValue & BIT_DIRTY) != 0;
+		return (rawValue & FLAG_DIRTY) != 0;
 	}
 	public boolean testReferenced() {
-		return (rawValue & BIT_REFERENCED) != 0;
+		return (rawValue & FLAG_REFERENCED) != 0;
+	}
+	// composite flag
+	public boolean testReferencedDirty() {
+		return (rawValue & FLAG_REFERENCED_DIRTY) == FLAG_REFERENCED_DIRTY;
 	}
 	
 	public void setProtect() {
-		if ((rawValue & BIT_PROTECT) == 0) {
-			rawValue = (rawValue & ~BIT_PROTECT) | BIT_PROTECT;
+		if (!testProtect()) {
+			rawValue = (rawValue & ~FLAG_PROTECT) | FLAG_PROTECT;
 		}
 	}
 	public void setDirty() {
-		if ((rawValue & BIT_DIRTY) == 0) {
-			rawValue = (rawValue & ~BIT_DIRTY) | BIT_DIRTY;
+		if (!testDirty()) {
+			rawValue = (rawValue & ~FLAG_DIRTY) | FLAG_DIRTY;
 		}
 	}
 	public void setReferenced() {
-		if ((rawValue & BIT_REFERENCED) == 0) {
-			rawValue = (rawValue & ~BIT_REFERENCED) | BIT_REFERENCED;
+		if (!testReferenced()) {
+			rawValue = (rawValue & ~FLAG_REFERENCED) | FLAG_REFERENCED;
+		}
+	}
+	// composite flag
+	public void setReferencedDirty() {
+		if (!testReferencedDirty()) {
+			rawValue = (rawValue & ~FLAG_REFERENCED_DIRTY) | FLAG_REFERENCED_DIRTY;
 		}
 	}
 	
@@ -97,8 +107,8 @@ public final class Map {
 		if (testVacant()) {
 			 flags.add("VACANT");
 		} else {
-			if (testProtect()) flags.add("PROTECT");
-			if (testDirty()) flags.add("DIRTY");
+			if (testProtect())    flags.add("PROTECT");
+			if (testDirty())      flags.add("DIRTY");
 			if (testReferenced()) flags.add("REFERENCED");
 		}
 		

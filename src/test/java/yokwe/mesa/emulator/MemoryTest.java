@@ -48,13 +48,14 @@ public class MemoryTest extends Base {
 		int   vp       = 1000;
 		short mapFlags = 0xFF;
 		int   rp       = 2000;
+		short expected = 0x07;
 		// prepare
 		// execute
 		memory.writeMap(vp, mapFlags, rp);
 		
 		// check result
 		var map = memory.readMap(vp);
-		assertEquals(mapFlags, map.flag());
+		assertEquals(expected, map.flag());
 		assertEquals(Type.toPageAddress(rp), map.offset());
 		
 		// check side effect

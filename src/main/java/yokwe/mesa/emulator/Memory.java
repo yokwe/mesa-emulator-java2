@@ -33,10 +33,10 @@ public final class Memory {
 		raSize = toPageAddress(rpSize);
 		
 		map        = new Map[vpSize];
-		for(int i = 0; i < map.length; i++) {
-			map[i] = new Map();
-		}
 		realMemory = new short[raSize];
+		
+		// initialize map element
+		Arrays.setAll(map, i -> new Map());
 		
 		init();
 	}
@@ -56,30 +56,27 @@ public final class Memory {
 		// initialize mapFlags and realPages
 		//
 		//const int VP_START = pageGerm + countGermVM;
-		int rp = 0;
+		short mapFlags = 0;
+		int   rp   = 0;
 		// vp:[ioRegionPage .. 256) <=> rp:[0..256-ioRegionPage)
-		for(int i = ioRegionPage; i < 256; i++) {
-			map[i].flag(0);
-			map[i].realPage(rp++);
+		for(int vp = ioRegionPage; vp < 256; vp++) {
+			map[vp].set(mapFlags, rp++);
 		}
 		// vp:[0..ioRegionPage) <=> rp: [256-ioRegionPage .. 256)
-		for(int i = 0; i < ioRegionPage; i++) {
-			map[i].flag(0);
-			map[i].realPage(rp++);
+		for(int vp = 0; vp < ioRegionPage; vp++) {
+			map[vp].set(mapFlags, rp++);
 		}
 		// vp: [256 .. rpSize)
-		for(int i = 256; i < rpSize; i++) {
-			map[i].flag(0);
-			map[i].realPage(rp++);
+		for(int vp = 256; vp < rpSize; vp++) {
+			map[vp].set(mapFlags, rp++);
 		}
 		if (rp != rpSize) {
 			logger.error("rp != rpSize");
 			error();
 		}
 		// vp: [rpSize .. vpSize)
-		for(int i = rpSize; i < vpSize; i++) {
-			map[i].setVacant();
-			map[i].realPage(0);
+		for(int vp = rpSize; vp < vpSize; vp++) {
+			map[vp].setVacant();
 		}
 	}
 	
@@ -133,6 +130,10 @@ public final class Memory {
 		
 		return flag.offset() | toPageOffset(va);
 	}
+	public int fetch(int va, int ra, int offset) {
+		int vb = va + offset;
+		return isSamePage(va, vb) ? ra + offset : fetch(vb);
+	}
 	public int store(int va) {
 		var flag = map[toPageNumber(va)];
 		
@@ -140,8 +141,7 @@ public final class Memory {
 		if (flag.testProtect()) Process.writeProtectFault(va);
 		
 		// maintain flag
-		flag.setReferenced();
-		flag.setDirty();
+		flag.setReferencedDirty();
 		
 		return flag.offset() | toPageOffset(va);
 	}
